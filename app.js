@@ -2,15 +2,14 @@ const A=document.getElementById('app'),g=id=>document.getElementById(id);
 const PER={1:5,2:5,3:5},PTS=100/15;
 const KKM=75,BG_VOLUME=.18;
 const AUDIO={background:new Audio('sfx/bgSound.mp3'),correct:new Audio('sfx/correct.mp3'),wrong:new Audio('sfx/wrong.mp3'),aboveKkm:new Audio('sfx/diatasKKM.mp3'),aroundKkm:new Audio('sfx/sekitarKKM.mp3'),poor:[new Audio('sfx/fail1.mp3'),new Audio('sfx/fail2.mp3')],veryPoor:new Audio('sfx/extraFail.mp3')};
-const LISTENING_AUDIO=Object.fromEntries([...new Set(BANK.filter(q=>q.audio).map(q=>q.audio))].map(src=>[src,new Audio(src)]));
 AUDIO.background.loop=true;AUDIO.background.volume=BG_VOLUME;
-Object.values(AUDIO).flat().concat(Object.values(LISTENING_AUDIO)).forEach(audio=>{audio.preload='auto';audio.load()});
+Object.values(AUDIO).flat().forEach(audio=>{audio.preload='auto';audio.load()});
 let currentEffect=null;
 let effectSequence=0;
 let backgroundRequested=false;
 const LV={1:['Pagi','Mudah','☀️'],2:['Siang','Sedang','🌤️'],3:['Malam','Menantang','🌙']};
-const TYPE={mcq:'Pilihan ganda',tf:'Benar atau salah',fill:'Isi titik-titik',order:'Susun kalimat',match:'Jodohkan',listen:'Listening',speak:'Speaking'};
-const INS={mcq:'Pilih satu jawaban yang paling tepat.',tf:'Baca pernyataan, lalu pilih True (Benar) atau False (Salah).',fill:'Ketik kata yang hilang. Tiap garis _ adalah satu huruf.',order:'Ketuk kata-kata di bawah sesuai urutan, sampai menjadi kalimat yang benar.',match:'Pilih arti yang tepat untuk setiap kata. Setiap pasangan yang benar tetap mendapat poin!',listen:'Dengarkan audio, lalu pilih jawaban yang tepat. Audio dapat diputar ulang.',speak:'Tekan 🎤 lalu ucapkan dengan suara jelas. Boleh coba lagi sebelum diperiksa.'};
+const TYPE={mcq:'Pilihan ganda',tf:'Benar atau salah',fill:'Isi titik-titik',order:'Susun kalimat',match:'Jodohkan',listen:'Menyimak',speak:'Speaking'};
+const INS={mcq:'Pilih satu jawaban yang paling tepat.',tf:'Baca pernyataan, lalu pilih True (Benar) atau False (Salah).',fill:'Ketik kata yang hilang. Tiap garis _ adalah satu huruf.',order:'Ketuk kata-kata di bawah sesuai urutan, sampai menjadi kalimat yang benar.',match:'Pilih arti yang tepat untuk setiap kata. Setiap pasangan yang benar tetap mendapat poin!',listen:'Tekan tombol untuk mendengarkan kalimat, lalu pilih jawaban yang tepat. Kalimat dapat diputar ulang.',speak:'Tekan 🎤 lalu ucapkan dengan suara jelas. Boleh coba lagi sebelum diperiksa.'};
 const patH=(a,value='')=>{let index=0;const letters=value.toUpperCase().replace(/[^A-Z]/g,'');return a.split(' ').map(w=>`<span class="pw">${[...w].map(c=>`<span class="lt">${/[a-z]/i.test(c)?esc(letters[index++]||'_'):esc(c)}</span>`).join('')}</span>`).join('&nbsp;')};
 const fmt=n=>String(Math.round(n*10)/10).replace('.',',');
 const SKY=[['#ffd6a5','🌅','#ffeacf'],['#ffe69a','☀️','#fff4c4'],['#ffee9e','☀️','#fff8d0'],['#d6efff','☀️','#eef9ff'],['#b9e1ff','🌤️','#e1f2ff'],['#ffcf9f','⛅','#ffe9d3'],['#c7a8e8','🌇','#efe4fb'],['#4b4f9e','🌙','#323776'],['#2f3470','🌙','#242859'],['#1f2350','🌙','#191c42']];
@@ -83,10 +82,10 @@ ${box('🚌 Pergi ke Sekolah',TR)}
 <div class="tip">🔸 <b>I / You / We / They</b> → <b>don't</b> (do not) + kata kerja dasar.<br><i>They don't go to bed late.</i></div>
 <div class="tip">🔸 <b>He / She / It</b> → <b>doesn't</b> (does not) + kata kerja dasar.<br><i>She doesn't go to school by bus. (bukan "goes")</i></div>
 <div class="tip">🔸 <b>Never</b> sudah berarti "tidak pernah", jadi tidak perlu don't.<br><i>She never eats breakfast late.</i></div></section>
-<section class="card"><h2>🎧🎤 Tips Listening & Speaking</h2>
-<div class="tip">🎧 Dengarkan <b>kata penting</b>: jam (four o'clock), kegiatan (brush, homework), dan frekuensi (twice a week). Audio boleh diputar ulang.</div>
+<section class="card"><h2>🔊🎤 Tips Menyimak & Speaking</h2>
+<div class="tip">🔊 Dengarkan <b>kata penting</b>: jam (four o'clock), kegiatan (brush, homework), dan frekuensi (twice a week). Kalimat dapat diputar ulang.</div>
 <div class="tip">🎤 Baca pelan dan jelas, satu kata demi satu kata. Ucapkan <b>semua kata</b> dan jangan menambah kata lain.</div>
-<div class="tip">🔊 Tekan "Dengar Contoh" dulu, lalu tiru ucapannya. Jawaban singkat: <i>Yes, I do.</i> atau <i>No, I don't.</i></div></section>
+<div class="tip">🔊 Pada soal menyimak, browser membacakan kalimat dalam bahasa Inggris. Pada Speaking, tekan "Dengar Contoh" untuk mendengar contoh jawaban. Jawaban singkat: <i>Yes, I do.</i> atau <i>No, I don't.</i></div></section>
 <button class="btn go" onclick="home()">Siap! Kembali ke Beranda 🏠</button></div>`}
 
 const FORMATS=['mcq','tf','fill','order','match'],fk=q=>q.k||q.type;
@@ -109,7 +108,7 @@ function pickRotating(level,name,filter,count){const bags=loadRotationBags(),cho
 function build(){const history=loadQuestionHistory();decayQuestionHistory(history);let position=0;
 const questions=[],canSpeak=speechUsable();
 for(const level of [1,2,3]){const used=new Set(),plan=SESSION_PLAN[level];
-const listening=plan.listen?pickRotating(level,'listen',q=>q.audio,plan.listen):[];
+const listening=plan.listen?pickRotating(level,'listen',q=>q.listenText,plan.listen):[];
 const speaking=canSpeak&&plan.speak?pickRotating(level,'speak',q=>q.k=='speak',plan.speak):[]; // tanpa dukungan mikrofon, diganti soal biasa
 const standardFormats=shuf(FORMATS).slice(0,PER[level]-listening.length-speaking.length);
 const slots=shuf([...listening,...speaking].map(q=>({q})).concat(standardFormats.map(format=>({format}))));
@@ -126,15 +125,15 @@ A.innerHTML=`<div class="wrap"><div class="hi-row"><button class="home-btn" type
 if(q.type=='order')draw()}
 
 function body(q){
-if(q.type=='mcq')return `${q.audio?'<button class="btn alt listen-btn" onclick="playListening()">🔊 Putar Audio</button>':''}<div class="opts">${q.o.map((o,k)=>`<button class="opt" onclick="pick(${k})">${esc(o)}</button>`).join('')}</div>`;
+if(q.type=='mcq')return `${q.listenText?'<button class="btn alt listen-btn" type="button" onclick="sayListening()">🔊 Dengarkan Kalimat</button>':''}<div class="opts">${q.o.map((o,k)=>`<button class="opt" onclick="pick(${k})">${esc(o)}</button>`).join('')}</div>`;
 if(q.type=='fill')return `<div id="pat" class="pat">${patH(q.a[0])}</div><input id="fi" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" oninput="fillInput()" onkeydown="if(event.key==='Enter')check()" maxlength="${Math.max(...q.a.map(a=>a.length))+4}" placeholder="Ketik jawabanmu di sini…">`;
 if(q.type=='order')return `<div id="ans" class="ans"></div><div id="bank" class="bank"></div><p class="hint">Ketuk kata untuk menyusun. Ketuk lagi untuk membatalkan.</p>`;
-if(q.type=='speak')return `<div class="speak-box"><div class="speak-text">${q.mode=='read'?esc(q.target):`Contoh jawaban: <b>${esc(q.target)}</b>`}</div><div class="speak-actions"><button class="btn alt" type="button" onclick="sayExample()">🔊 Dengar Contoh</button><button class="btn go mic-btn" id="mic" type="button" onclick="toggleMic()">🎤 Tekan & Bicara</button></div><div id="heard" class="heard" aria-live="polite">Belum ada suara. Tekan 🎤 lalu bicara.</div><div id="swap"></div></div>`;
+if(q.type=='speak'){const exampleCount=Q.slice(0,i).filter(question=>question.type=='speak').length;
+return `<div class="speak-box"><div class="speak-text">${q.mode=='read'?esc(q.target):`Contoh jawaban: <b>${esc(q.target)}</b>`}</div><div class="speak-actions">${exampleCount<2?'<button class="btn alt" type="button" onclick="sayExample()">🔊 Dengar Contoh</button>':''}<button class="btn go mic-btn" id="mic" type="button" onclick="toggleMic()">🎤 Tekan & Bicara</button></div><div id="heard" class="heard" aria-live="polite">Belum ada suara. Tekan 🎤 lalu bicara.</div><div id="swap"></div></div>`}
 return q.p.map((p,k)=>`<div class="row"><b>${esc(p[0])}</b><div class="dd"><button type="button" class="ddb" onclick="tg(${k})">Pilih arti…</button><ul class="ddl" hidden>${q.sh.map((x,j)=>`<li><button type="button" data-v="${esc(x)}" onclick="sv(${k},${j})">${esc(x)}</button></li>`).join('')}</ul></div></div>`).join('')}
 
 function pick(k){st.sel=k;document.querySelectorAll('.opt').forEach((b,j)=>b.classList.toggle('sel',j==k))}
 function fillInput(){g('pat').innerHTML=patH(Q[i].a[0],g('fi').value)}
-function playListening(){const audio=LISTENING_AUDIO[Q[i].audio];if(audio)playEffect(audio)}
 function draw(){const q=Q[i];g('ans').innerHTML=st.ans.map(k=>`<button class="chip" onclick="mv(${k},0)">${esc(q.w[k])}</button>`).join('');
 g('bank').innerHTML=q.sh.filter(([w,k])=>!st.ans.includes(k)).map(([w,k])=>`<button class="chip" onclick="mv(${k},1)">${esc(w)}</button>`).join('')}
 function mv(k,add){if(st.done)return;st.ans=add?[...st.ans,k]:st.ans.filter(x=>x!=k);draw()}
@@ -147,7 +146,7 @@ function warn(m){g('fb').innerHTML=`<div class="fb part">${m}</div>`;g('fb').scr
 function showAnswerOverlay(ok,partial){const old=document.querySelector('.answer-overlay');if(old)old.remove();
 const overlay=document.createElement('div');overlay.className=`answer-overlay ${ok?'correct':partial?'partial':'incorrect'}`;overlay.setAttribute('role','status');overlay.setAttribute('aria-live','assertive');
 overlay.innerHTML=`<div class="answer-overlay-card"><span class="answer-overlay-icon">${ok?'🎉':partial?'🌟':'💫'}</span><b>${ok?'Benar!':partial?'Hampir!':'Belum tepat'}</b></div>`;
-document.body.append(overlay);overlay.addEventListener('animationend',()=>overlay.remove(),{once:true})}
+document.body.append(overlay);const remove=()=>{clearTimeout(timeout);overlay.remove()};overlay.addEventListener('animationend',remove,{once:true});const timeout=setTimeout(remove,700)}
 
 function startBackgroundMusic(){backgroundRequested=true;if(voiceBusy||document.hidden||!document.hasFocus()||!AUDIO.background.paused)return;
 const playback=AUDIO.background.play();if(playback)playback.catch(error=>{console.warn('Backsound tidak dapat diputar:',error);if(error&&error.name=='NotAllowedError')armAudioUnlock()})}
@@ -191,17 +190,22 @@ const speechRecognitionClass=()=>window.SpeechRecognition||window.webkitSpeechRe
 let micPermission='unknown'; // unknown | granted | denied | missing
 function speechSupported(){return !!speechRecognitionClass()&&window.isSecureContext!==false}
 const speechUsable=()=>speechSupported()&&micPermission!='denied'&&micPermission!='missing'
-let recognition=null,voiceBusy=false;
+let recognition=null,voiceBusy=false,speechSequence=0;
 function setVoiceBusy(busy){voiceBusy=busy;if(busy){effectSequence++;if(currentEffect){currentEffect.pause();currentEffect=null}AUDIO.background.pause()}else if(backgroundRequested)startBackgroundMusic()}
-function stopVoice(){if(recognition){const r=recognition;recognition=null;r.onresult=r.onerror=r.onend=null;try{r.abort()}catch(e){}}
-try{window.speechSynthesis?.cancel()}catch(e){}if(voiceBusy)setVoiceBusy(false);const mic=g('mic');if(mic){mic.classList.remove('rec');mic.textContent='🎤 Tekan & Bicara'}}
+function stopVoice(resumeBackground=true){speechSequence++;if(recognition){const r=recognition;recognition=null;r.onresult=r.onerror=r.onend=null;try{r.abort()}catch(e){}}
+try{window.speechSynthesis?.cancel()}catch(e){}if(voiceBusy){if(resumeBackground)setVoiceBusy(false);else voiceBusy=false}const mic=g('mic');if(mic){mic.classList.remove('rec');mic.textContent='🎤 Tekan & Bicara'}}
 function showHeard(text,cls=''){const el=g('heard');if(el){el.className='heard '+cls;el.textContent=text}}
 function offerSwap(){const el=g('swap');if(el&&!el.firstChild)el.innerHTML='<button class="btn alt" type="button" onclick="swapSpeaking()">Mikrofon bermasalah? Ganti soal lain</button>'}
 function swapSpeaking(){const q=Q[i];stopVoice();const used=new Set(Q),formats=shuf(FORMATS).filter(f=>POOL[q.t].some(x=>fk(x)==f&&!used.has(x)));
 Q[i]=chooseFromPool(q.t,formats[0],loadQuestionHistory(),i,used);show()}
 function sayExample(){if(st.done||!window.speechSynthesis||!window.SpeechSynthesisUtterance)return warn('Browser ini belum bisa membacakan contoh. 😅');
-stopVoice();const u=new SpeechSynthesisUtterance(Q[i].target);u.lang='en-US';u.rate=.85;setVoiceBusy(true);
-u.onend=u.onerror=()=>{if(voiceBusy&&!recognition)setVoiceBusy(false)};speechSynthesis.speak(u)}
+sayText(Q[i].target,.75)}
+function sayListening(){if(st.done)return;if(!window.speechSynthesis||!window.SpeechSynthesisUtterance)return warn('Browser ini belum mendukung suara otomatis. Coba gunakan Chrome atau Edge. 😅');
+sayText(Q[i].listenText,.75)}
+function preferredEnglishVoice(){const voices=speechSynthesis.getVoices(),english=voices.filter(voice=>voice.lang.toLowerCase().startsWith('en'));
+return english.find(voice=>/\b(female|woman|girl|samantha|victoria|karen|moira|tessa|fiona|ava|allison|susan|zira|jenny|aria|michelle|hazel)\b/i.test(voice.name))||english[0]||voices[0]||null}
+function sayText(text,rate){stopVoice(false);const sequence=++speechSequence,u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.voice=preferredEnglishVoice();u.rate=rate;setVoiceBusy(true);
+u.onend=u.onerror=()=>{if(sequence===speechSequence&&voiceBusy&&!recognition)setVoiceBusy(false)};speechSynthesis.speak(u)}
 function toggleMic(){if(st.done)return;if(recognition){recognition.stop();return}
 const SR=speechRecognitionClass();if(!SR){offerSwap();return showHeard('Browser ini belum mendukung mikrofon. Coba Chrome atau Edge.','bad')}
 stopVoice();const r=new SR();recognition=r;r.lang='en-US';r.interimResults=true;r.maxAlternatives=3;r.continuous=false;
@@ -281,7 +285,7 @@ else{const v=q.p.map((p,k)=>st.m[k]||'');if(v.includes(''))return warn('Pilih ar
 document.querySelectorAll('.ddb').forEach((b,k)=>{const r=v[k]==q.p[k][1];b.classList.add(r?'ok':'no');if(!r)b.insertAdjacentHTML('afterend',`<span class="fix">✔ ${esc(q.p[k][1])}</span>`)})}
 if(q.type!='match'&&ok)pts=PTS;
 st.done=true;score+=pts;res.push({t:q.t,pts});saveSession('quiz');g('body').classList.add('locked');
-g('fb').innerHTML=`<div class="fb ${ok?'ok':pts>0?'part':'no'}">${ok?`🎉 <b>Benar! +${fmt(pts)} poin</b>`:pts>0?`👍 <b>${q.type=='speak'?'Hampir benar!':`${n} dari ${q.p.length} pasangan benar!`} +${fmt(pts)} poin</b>`:'😅 <b>Belum tepat (0 poin).</b>'}${ok?'':`<br>Jawaban benar: <b>${esc(right)}</b>`}${q.type=='speak'?`<br>🎤 Terdengar: <b>${esc(st.heard)}</b>`:''}${q.audioText?`<br>🎧 Transkrip: <b>${esc(q.audioText)}</b>`:''}<br>💡 ${esc(q.e)}</div>`;
+g('fb').innerHTML=`<div class="fb ${ok?'ok':pts>0?'part':'no'}">${ok?`🎉 <b>Benar! +${fmt(pts)} poin</b>`:pts>0?`👍 <b>${q.type=='speak'?'Hampir benar!':`${n} dari ${q.p.length} pasangan benar!`} +${fmt(pts)} poin</b>`:'😅 <b>Belum tepat (0 poin).</b>'}${ok?'':`<br>Jawaban benar: <b>${esc(right)}</b>`}${q.type=='speak'?`<br>🎤 Terdengar: <b>${esc(st.heard)}</b>`:''}${q.listenText?`<br>🔊 Kalimat yang dibacakan: <b>${esc(q.listenText)}</b>`:''}<br>💡 ${esc(q.e)}</div>`;
 showAnswerOverlay(ok,!ok&&pts>0);playAnswerSound(ok);
 g('fb').scrollIntoView?.({block:'nearest',behavior:'smooth'});g('chk').textContent=i==Q.length-1?'Lihat Hasil 🏆':'Lanjut ➜'}
 

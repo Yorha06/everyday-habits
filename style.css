@@ -64,7 +64,7 @@ body.dark .lt{color:#fff}
 .ddl button{display:block;width:100%;text-align:left;font:inherit;font-weight:700;color:var(--ink);background:none;border:0;border-radius:10px;padding:10px 12px;cursor:pointer}
 .ddl button:hover,.ddl button:focus-visible{background:#eaf3ff}.ddl button.used{opacity:.45}.ddl button.used::after{content:" ✓"}
 .fix{display:block;font-size:.88rem;font-weight:700;color:#1e8f52;margin-top:2px}
-.answer-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;pointer-events:none;animation:answer-overlay-pop .9s ease-out both}
+.answer-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;pointer-events:none;animation:answer-overlay-pop .7s ease-out both}
 .answer-overlay.correct{background:rgba(47,191,113,.16);color:#187a45}
 .answer-overlay.incorrect{background:rgba(255,107,107,.18);color:#b43e49}
 .answer-overlay.partial{background:rgba(255,196,61,.2);color:#946400}
