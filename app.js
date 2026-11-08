@@ -134,6 +134,11 @@ return q.p.map((p,k)=>`<div class="row"><b>${esc(p[0])}</b><div class="dd"><butt
 
 function pick(k){st.sel=k;document.querySelectorAll('.opt').forEach((b,j)=>b.classList.toggle('sel',j==k))}
 function fillInput(){g('pat').innerHTML=patH(Q[i].a[0],g('fi').value)}
+function keepFillInputVisible(){const input=g('fi');if(!input||document.activeElement!==input)return;
+const viewportHeight=window.visualViewport?.height||window.innerHeight,rect=input.getBoundingClientRect(),overflow=rect.bottom-(viewportHeight-24);
+if(overflow>0)window.scrollBy({top:overflow,behavior:'smooth'})}
+document.addEventListener('focusin',e=>{if(e.target.id=='fi')setTimeout(keepFillInputVisible,250)});
+window.visualViewport?.addEventListener('resize',keepFillInputVisible);
 function draw(){const q=Q[i];g('ans').innerHTML=st.ans.map(k=>`<button class="chip" onclick="mv(${k},0)">${esc(q.w[k])}</button>`).join('');
 g('bank').innerHTML=q.sh.filter(([w,k])=>!st.ans.includes(k)).map(([w,k])=>`<button class="chip" onclick="mv(${k},1)">${esc(w)}</button>`).join('')}
 function mv(k,add){if(st.done)return;st.ans=add?[...st.ans,k]:st.ans.filter(x=>x!=k);draw()}
