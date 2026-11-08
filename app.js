@@ -127,7 +127,7 @@ if(q.type=='order')draw()}
 function body(q){
 if(q.type=='mcq')return `${q.listenText?'<button class="btn alt listen-btn" type="button" onclick="sayListening()">🔊 Dengarkan Kalimat</button>':''}<div class="opts">${q.o.map((o,k)=>`<button class="opt" onclick="pick(${k})">${esc(o)}</button>`).join('')}</div>`;
 if(q.type=='fill')return `<div id="pat" class="pat">${patH(q.a[0])}</div><input id="fi" class="inp" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" oninput="fillInput()" onkeydown="if(event.key==='Enter')check()" maxlength="${Math.max(...q.a.map(a=>a.length))+4}" placeholder="Ketik jawabanmu di sini…">`;
-if(q.type=='order')return `<div id="ans" class="ans"></div><div id="bank" class="bank"></div><p class="hint">Ketuk kata untuk menyusun. Ketuk lagi untuk membatalkan.</p>`;
+if(q.type=='order')return `<div id="ans" class="ans"></div><div id="bank" class="bank"></div><p class="hint">Seret kata untuk menyusun, atau ketuk kata untuk memilih dan membatalkan.</p>`;
 if(q.type=='speak'){const exampleCount=Q.slice(0,i).filter(question=>question.type=='speak').length;
 return `<div class="speak-box"><div class="speak-text">${q.mode=='read'?esc(q.target):`Contoh jawaban: <b>${esc(q.target)}</b>`}</div><div class="speak-actions">${exampleCount<2?'<button class="btn alt" type="button" onclick="sayExample()">🔊 Dengar Contoh</button>':''}<button class="btn go mic-btn" id="mic" type="button" onclick="toggleMic()">🎤 Tekan & Bicara</button></div><div id="heard" class="heard" aria-live="polite">Belum ada suara. Tekan 🎤 lalu bicara.</div><div id="swap"></div></div>`}
 return q.p.map((p,k)=>`<div class="row"><b>${esc(p[0])}</b><div class="dd"><button type="button" class="ddb" onclick="tg(${k})">Pilih arti…</button><ul class="ddl" hidden>${q.sh.map((x,j)=>`<li><button type="button" data-v="${esc(x)}" onclick="sv(${k},${j})">${esc(x)}</button></li>`).join('')}</ul></div></div>`).join('')}
@@ -139,9 +139,28 @@ const viewportHeight=window.visualViewport?.height||window.innerHeight,rect=inpu
 if(overflow>0)window.scrollBy({top:overflow,behavior:'smooth'})}
 document.addEventListener('focusin',e=>{if(e.target.id=='fi')setTimeout(keepFillInputVisible,250)});
 window.visualViewport?.addEventListener('resize',keepFillInputVisible);
-function draw(){const q=Q[i];g('ans').innerHTML=st.ans.map(k=>`<button class="chip" onclick="mv(${k},0)">${esc(q.w[k])}</button>`).join('');
-g('bank').innerHTML=q.sh.filter(([w,k])=>!st.ans.includes(k)).map(([w,k])=>`<button class="chip" onclick="mv(${k},1)">${esc(w)}</button>`).join('')}
+function draw(){const q=Q[i];g('ans').innerHTML=st.ans.map(k=>`<button class="chip" data-word="${k}" onclick="mv(${k},0)">${esc(q.w[k])}</button>`).join('');
+g('bank').innerHTML=q.sh.filter(([w,k])=>!st.ans.includes(k)).map(([w,k])=>`<button class="chip" data-word="${k}" onclick="mv(${k},1)">${esc(w)}</button>`).join('')}
 function mv(k,add){if(st.done)return;st.ans=add?[...st.ans,k]:st.ans.filter(x=>x!=k);draw()}
+let wordDrag=null;
+document.addEventListener('pointerdown',e=>{const chip=e.target.closest('.chip'),zone=chip?.parentElement;if(!chip||!['ans','bank'].includes(zone.id)||st.done)return;
+const rect=chip.getBoundingClientRect();wordDrag={id:Number(chip.dataset.word),from:zone.id,pointerId:e.pointerId,x:e.clientX,y:e.clientY,offsetX:e.clientX-rect.left,offsetY:e.clientY-rect.top,moved:false,chip,ghost:null};chip.setPointerCapture?.(e.pointerId)});
+document.addEventListener('pointermove',e=>{if(!wordDrag||e.pointerId!==wordDrag.pointerId)return;
+if(!wordDrag.moved&&Math.hypot(e.clientX-wordDrag.x,e.clientY-wordDrag.y)<8)return;
+if(!wordDrag.moved){wordDrag.moved=true;wordDrag.chip.classList.add('dragging');wordDrag.ghost=wordDrag.chip.cloneNode(true);wordDrag.ghost.classList.remove('dragging');wordDrag.ghost.classList.add('drag-ghost');document.body.append(wordDrag.ghost)}
+wordDrag.ghost.style.left=`${e.clientX-wordDrag.offsetX}px`;wordDrag.ghost.style.top=`${e.clientY-wordDrag.offsetY}px`;e.preventDefault();const zone=document.elementFromPoint(e.clientX,e.clientY)?.closest('#ans,#bank');
+document.querySelectorAll('.drop-target').forEach(el=>{if(el!==zone)el.classList.remove('drop-target')});zone?.classList.add('drop-target')});
+document.addEventListener('pointerup',e=>{if(!wordDrag||e.pointerId!==wordDrag.pointerId)return;
+const drag=wordDrag;wordDrag=null;drag.chip.classList.remove('dragging');drag.ghost?.remove();document.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'));
+if(!drag.moved)return;
+const zone=document.elementFromPoint(e.clientX,e.clientY)?.closest('#ans,#bank');if(!zone||st.done)return;
+if(zone.id=='bank'){if(drag.from=='ans')st.ans=st.ans.filter(k=>k!==drag.id);else return}
+else{const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.chip'),targetId=target&&target.parentElement==zone?Number(target.dataset.word):null;
+if(drag.from=='ans'){if(!st.ans.includes(drag.id)||targetId===drag.id)return;st.ans=st.ans.filter(k=>k!==drag.id)}
+if(targetId!==null){const targetIndex=st.ans.indexOf(targetId);if(targetIndex<0)return;st.ans.splice(targetIndex,0,drag.id)}
+else st.ans.push(drag.id)}
+draw()});
+document.addEventListener('pointercancel',e=>{if(wordDrag?.pointerId===e.pointerId){wordDrag.chip.classList.remove('dragging');wordDrag.ghost?.remove();wordDrag=null;document.querySelectorAll('.drop-target').forEach(el=>el.classList.remove('drop-target'))}});
 function tg(k){if(st.done)return;document.querySelectorAll('.ddl').forEach((u,j)=>u.hidden=j==k?!u.hidden:true)}
 function sv(k,j){const v=Q[i].sh[j];st.m[k]=v;const b=document.querySelectorAll('.ddb')[k];b.textContent=v;b.classList.add('set');document.querySelectorAll('.ddl').forEach(u=>u.hidden=true);document.querySelectorAll('.ddl li button').forEach(x=>x.classList.toggle('used',st.m.includes(x.dataset.v)))}
 document.addEventListener('click',e=>{if(!e.target.closest('.dd'))document.querySelectorAll('.ddl').forEach(u=>u.hidden=true)});
