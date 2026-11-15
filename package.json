@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.js",
-    "check:grade": "node scripts/check-grade.js"
-  },
-  "devDependencies": {
-    "playwright": "^1.65.0"
+    "start": "node server.js"
   }
 }
