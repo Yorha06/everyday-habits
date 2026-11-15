@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Admin — Everyday Habits</title>
+  <link rel="icon" type="image/svg+xml" href="../logo.svg">
+  <link rel="apple-touch-icon" href="../logo-180.png">
+  <meta name="theme-color" content="#7c5cff">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="admin-header">
+      <a href="../" class="brand">Everyday Habits <span>Admin</span></a>
+      <button id="logout" type="button" class="button secondary" hidden>Keluar</button>
+    </header>
+
+    <section id="login-panel" class="panel login-panel">
+      <h1>Masuk Admin</h1>
+      <p class="muted">Akses hanya untuk akun dengan role admin.</p>
+      <p id="config-message" class="notice warning" hidden></p>
+      <form id="login-form">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required>
+        <label for="password">Kata sandi</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button class="button" type="submit">Masuk</button>
+      </form>
+      <p id="login-message" class="notice" role="status" hidden></p>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="dashboard-title">
+        <div><h1>Submission Peserta</h1><p id="admin-email" class="muted"></p></div>
+        <div class="export-controls">
+          <label for="export-session">Export</label>
+          <select id="export-session">
+            <option value="all">Semua sesi</option>
+            <option value="practice">Latihan</option>
+            <option value="assessment">Asesmen</option>
+          </select>
+          <button id="export-button" type="button" class="button secondary">Unduh Excel</button>
+        </div>
+      </div>
+      <p id="dashboard-message" class="notice" role="status" hidden></p>
+      <div class="stats">
+        <article class="stat"><span>Submission sesuai filter</span><strong id="stat-count">0</strong></article>
+        <article class="stat"><span>Rata-rata total</span><strong id="stat-total">—</strong></article>
+        <article class="stat"><span>Rata-rata Latihan</span><strong id="stat-practice">—</strong></article>
+        <article class="stat"><span>Rata-rata Asesmen</span><strong id="stat-assessment">—</strong></article>
+      </div>
+      <section class="panel filters" aria-label="Filter submission">
+        <label>Nama/kode<input id="search" type="search" placeholder="Cari nama atau kode"></label>
+        <label>Dari tanggal<input id="date-from" type="date"></label>
+        <label>Sampai tanggal<input id="date-to" type="date"></label>
+        <label>Urutkan
+          <select id="sort">
+            <option value="submitted_desc">Terbaru</option>
+            <option value="submitted_asc">Terlama</option>
+            <option value="name_asc">Nama A–Z</option>
+            <option value="total_desc">Skor tertinggi</option>
+            <option value="total_asc">Skor terendah</option>
+          </select>
+        </label>
+      </section>
+      <section class="panel table-panel">
+        <div class="table-wrap">
+          <table>
+          <thead><tr><th scope="col">Kode</th><th scope="col">Nama</th><th scope="col">Latihan</th><th scope="col">Asesmen</th><th scope="col">Total</th><th scope="col">Waktu submit</th><th scope="col">Aksi</th></tr></thead>
+            <tbody id="submission-rows"></tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span id="page-label">Halaman 1</span>
+          <div><button id="previous-page" type="button" class="button secondary">Sebelumnya</button><button id="next-page" type="button" class="button secondary">Berikutnya</button></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title">
+    <div class="dialog-header"><h2 id="detail-title">Detail Peserta</h2><button id="close-detail" type="button" class="button secondary">Tutup</button></div>
+    <div id="detail-content"></div>
+    <p id="detail-message" class="notice" role="status" hidden></p>
+    <div class="detail-actions">
+      <button id="delete-participant" type="button" class="button danger">Hapus peserta</button>
+      <button id="export-participant" type="button" class="button secondary">Export peserta ini</button>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="../js/supabase.js"></script>
+  <script src="../questions.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

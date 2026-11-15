@@ -14,6 +14,7 @@ h1{font-size:clamp(1.9rem,5vw,2.9rem);line-height:1.1;margin:0 0 .3em}h2{font-si
 label{display:block;font-weight:800;margin:1em 0 .4em}
 .btn{display:block;width:100%;min-height:54px;border:0;border-radius:18px;padding:13px;font:inherit;font-weight:800;font-size:1.1rem;color:#fff;background:var(--blue);box-shadow:0 5px 0 #2565b8;cursor:pointer;margin-top:12px}
 .btn:active{transform:translateY(3px);box-shadow:0 2px 0 #2565b8}.btn.go{background:var(--ok);box-shadow:0 5px 0 #1e8f52}
+.btn:disabled{opacity:.65;cursor:wait;transform:none}
 .btn.alt{background:#fff;color:var(--blue);border:3px solid #cfe3fb;box-shadow:0 4px 0 #cfe3fb}
 .back{font:inherit;font-weight:700;border:0;background:#fff;border-radius:99px;padding:8px 16px;margin-bottom:12px;cursor:pointer;color:var(--blue)}
 :focus-visible{outline:4px solid #ffc53d;outline-offset:2px}
@@ -138,3 +139,7 @@ body.dark .heard.bad{color:#ffb4b4}
 .prow{display:flex;justify-content:space-between;gap:6px;font-size:.85rem}.pnote{margin:auto 0 0;padding-top:6px;font-weight:700;font-size:.85rem}
 
 .rv{margin:12px 0;border-left:8px solid #ff9b6b}.rv.ok{border-left-color:#2fbf71}.rv.part{border-left-color:#ffc43d}.rv h3{margin:6px 0}.rv p{margin:6px 0}
+.submission-box{margin:18px 0;padding:16px;border:2px solid var(--line);border-radius:16px;background:var(--soft);text-align:center}
+.submission-box p{margin:0 0 8px}.submission-box .hint{margin-top:10px}
+.submission-confirmation{margin:18px 0;text-align:center}
+.pending-results{padding:16px;margin:12px 0}

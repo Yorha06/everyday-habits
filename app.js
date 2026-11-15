@@ -14,10 +14,9 @@ const patH=(a,value='')=>{let index=0;const letters=value.toUpperCase().replace(
 const fmt=n=>String(Math.round(n*10)/10).replace('.',',');
 const SKY=[['#ffd6a5','🌅','#ffeacf'],['#ffe69a','☀️','#fff4c4'],['#ffee9e','☀️','#fff8d0'],['#d6efff','☀️','#eef9ff'],['#b9e1ff','🌤️','#e1f2ff'],['#ffcf9f','⛅','#ffe9d3'],['#c7a8e8','🌇','#efe4fb'],['#4b4f9e','🌙','#323776'],['#2f3470','🌙','#242859'],['#1f2350','🌙','#191c42']];
 function theme(n){const b=document.body,s=SKY[n<0?1:Math.round(n/(Q.length-1)*9)],dark=n>=0&&Q[n].t==3,card=n<0?s[2]:dark?'#323776':Q[n].t==2?'#d6efff':'#fff4c4';b.style.setProperty('--bg',s[0]);b.style.setProperty('--card',card);b.classList.toggle('dark',dark);g('sky').textContent=n<0?'☀️':s[1];window.scrollTo(0,0)}
-let Q=[],i=0,score=0,res=[],st={};
+let Q=[],i=0,score=0,res=[],st={},submissionReceipt=null,submissionToken=null;
 const shuf=a=>{a=[...a];for(let j=a.length-1;j>0;j--){const k=Math.random()*(j+1)|0;[a[j],a[k]]=[a[k],a[j]]}return a};
-const norm=s=>s.toLowerCase().replace(/[’‘]/g,"'").replace(/[^a-z' ]/g,'').replace(/\s+/g,' ').trim();
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 let NAME='';try{if(!localStorage.getItem('eh_anon_v1')){localStorage.removeItem('eh_name');localStorage.setItem('eh_anon_v1','1')}
 ['eh_question_history_v1','eh_listening_bag_v1','eh_session_v1'].forEach(k=>localStorage.removeItem(k));NAME=localStorage.getItem('eh_name')||''}catch(e){}
 const bk=()=>'eh_best_'+NAME.toLowerCase();
@@ -28,12 +27,15 @@ const INTRO={0:['🦉','Fase 1: Latihan','Ada <b>10 soal</b> tentang <b>How ofte
 function introDialog(k){closeMicDialog();introSeen[k]=1;const[ic,t,p,b]=INTRO[k],d=document.createElement('div');d.className='mic-dialog';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');
 d.innerHTML=`<div class="mic-dialog-card"><div class="mic-owl">${ic}</div><h2>${t}</h2><p>${p}</p><button class="btn go" type="button" onclick="closeMicDialog()">${b}</button></div>`;document.body.append(d)}
 
-function home(){clearSession();theme(-1);setTimeout(updateMicNote);
+function home(skipQueue){if(!skipQueue&&canSubmitResults()&&!submissionReceipt)try{EHSubmission.queue(submissionPayload())}catch(error){return warn(error.message)}
+clearSession();theme(-1);setTimeout(updateMicNote);
+let pending=[],pendingError='';try{pending=EHSubmission.getPending()}catch(error){pendingError=error.message}
 A.innerHTML=`<section class="hero"><div class="mascot">🦉<span>⏰</span></div><div><div class="brand"><img class="logo" src="logo.svg" alt="Logo Everyday Habits" width="48" height="48"><span>Everyday Habits</span></div><h1>Halo, Teman Pintar!</h1>
 <p class="sub">Yuk belajar kebiasaan sehari-hari dalam bahasa Inggris. Seru, mudah, dan ada bintangnya!</p>
 <label for="nm">Pakai <b>nama samaran</b>, jangan nama aslimu!</label>
 <input id="nm" class="inp" maxlength="20" autocomplete="off" placeholder="Contoh: Elang Cerdas" value="${esc(NAME)}" onkeydown="if(event.key==='Enter')go()">
 <button class="back" type="button" onclick="randName()">🎲 Acak nama</button><p class="sub">Nama hanya tersimpan di browser ini.</p>
+${pendingError?`<div class="fb part">${esc(pendingError)}</div>`:pending.length?`<section class="card pending-results"><h2>📤 Hasil belum terkirim</h2><p class="sub">Hasil tetap tersimpan di browser. Kirim ulang saat internet tersedia.</p>${pending.map(item=>`<button class="btn alt" type="button" onclick="retrySubmission('${esc(item.submission_token)}',this)">Kirim hasil ${esc(item.participant_name)} (${new Date(item.created_at).toLocaleString('id-ID')})</button>`).join('')}</section>`:''}
 <div id="fb"></div><p id="micnote" class="sub"></p><button class="btn go" onclick="go()">Ayo Mulai! 🚀</button><button class="btn alt" onclick="learn()">📘 Belajar Dulu</button>
 ${best()?`<p class="best">🏆 Skor terbaikmu: <b>${fmt(best())}</b></p>`:''}</div></section>
 <section class="steps"><div><b>✍️ 10 latihan + 5 asesmen</b><span>Semua tentang How often. Asesmen: susun 5 pasang tanya-jawab</span></div><div><b>⭐ Latihan maks 100</b><span>Asesmen dinilai terpisah (maks 100), target 80</span></div><div><b>☀️ → 🌤️ → 🌙</b><span>Soal makin lama makin menantang</span></div></section>`}
@@ -83,7 +85,9 @@ ${box('🚌 Pergi ke Sekolah',TR)}
 <button class="btn go" onclick="home()">Siap! Kembali ke Beranda 🏠</button></div>`}
 
 function build(){const ok=speechUsable();return BANK.map(q=>q.k=='speak'&&!ok?q.fb:q)}
-function start(){startBackgroundMusic();introSeen={};Q=build();i=0;score=0;res=[];show()}
+function start(){if(canSubmitResults()&&!submissionReceipt)try{EHSubmission.queue(submissionPayload())}catch(error){return warn(error.message)}
+let nextToken;try{nextToken=EHSubmission.createToken()}catch(error){return warn(error.message)}
+startBackgroundMusic();introSeen={};Q=build();i=0;score=0;res=[];submissionReceipt=null;submissionToken=nextToken;show()}
 
 function show(){const q=Q[i],[l,n,ic]=LV[q.t],restored=restoringSession,pair=q.type=='pair',p2sum=res.filter(r=>r.ph==2).reduce((a,r)=>a+r.pts,0);stopVoice();restoringSession=false;theme(i);st={sel:null,ans:[],m:[],done:false,fillMode:false,heard:'',alts:[],tries:0};
 saveSession('quiz');q.G=q.type=='order'?[{w:q.w}]:pair?[{w:q.qw},{w:q.aw}]:0;if(q.G){q.G.forEach(x=>x.sh=shuf(x.w.map((w,k)=>[w,k])));st.ans=q.G.map(()=>[])}
@@ -139,7 +143,8 @@ function tg(k){if(st.done)return;document.querySelectorAll('.ddl').forEach((u,j)
 function sv(k,j){const v=Q[i].sh[j];st.m[k]=v;const b=document.querySelectorAll('.ddb')[k];b.textContent=v;b.classList.add('set');document.querySelectorAll('.ddl').forEach(u=>u.hidden=true);document.querySelectorAll('.ddl li button').forEach(x=>x.classList.toggle('used',st.m.includes(x.dataset.v)))}
 document.addEventListener('click',e=>{if(!e.target.closest('.dd'))document.querySelectorAll('.ddl').forEach(u=>u.hidden=true)});
 document.addEventListener('keydown',e=>{if(e.key=='Escape')document.querySelectorAll('.ddl').forEach(u=>u.hidden=true)});
-function warn(m){g('fb').innerHTML=`<div class="fb part">${m}</div>`;g('fb').scrollIntoView?.({block:'nearest',behavior:'smooth'})}
+function warn(m){const target=g('fb')||g('submit-feedback');if(!target){console.warn(m);return}
+target.innerHTML=`<div class="fb part">${esc(m)}</div>`;target.scrollIntoView?.({block:'nearest',behavior:'smooth'})}
 
 function showAnswerOverlay(ok,partial){const old=document.querySelector('.answer-overlay');if(old)old.remove();
 const overlay=document.createElement('div');overlay.className=`answer-overlay ${ok?'correct':partial?'partial':'incorrect'}`;overlay.setAttribute('role','status');overlay.setAttribute('aria-live','assertive');
@@ -175,15 +180,6 @@ window.addEventListener('pageshow',resumeAudio);
 function playAnswerSound(correct){playEffect(correct?AUDIO.correct:AUDIO.wrong)}
 
 // ===== Speaking: mikrofon (Web Speech API) dan contoh ucapan =====
-const NUMBER_WORDS=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
-// Chrome sering menulis jam sebagai angka ("9:00", "7:30"); "o'clock" bersifat opsional karena sering hilang saat ditranskripsi.
-const speechTokens=text=>norm(String(text).toLowerCase().replace(/(\d{1,2}):30/g,'half past $1').replace(/(\d{1,2}):00/g,'$1').replace(/\b\d{1,2}\b/g,d=>NUMBER_WORDS[+d]||d).replace(/o['’]\s?clock/g,'oclock')).replace(/'/g,'').split(' ').filter(word=>word&&word!='oclock');
-function speakScore(q,alternatives){let best={ok:false,score:0};
-for(const target of [q.target,...(q.accept||[])]){const words=speechTokens(target);
-for(const heard of alternatives){const heardWords=speechTokens(heard),pool=[...heardWords];let hit=0;for(const w of words){const k=pool.indexOf(w);if(k>=0){hit++;pool.splice(k,1)}}
-// Benar penuh: semua kata target terucap dan kata tambahan maksimal 1 (jadi "yes I love" bukan "yes I do").
-const ok=words.length>0&&hit==words.length&&heardWords.length-hit<=(q.extra??1),score=ok?1:hit/Math.max(words.length,heardWords.length,1);
-if(ok||(!best.ok&&score>best.score))best={ok,score}}}return best}
 const speechRecognitionClass=()=>window.SpeechRecognition||window.webkitSpeechRecognition;
 let micPermission='unknown'; // unknown | granted | denied | missing
 function speechSupported(){return !!speechRecognitionClass()&&window.isSecureContext!==false}
@@ -243,14 +239,15 @@ updateMicNote()})().finally(()=>{micRequest=null});return micRequest}
 // ===== Pengaman refresh: kuis yang sedang berjalan disimpan dan dilanjutkan setelah halaman dimuat ulang =====
 const SESSION_KEY='eh_session_v2',SESSION_MAX_AGE=12*60*60*1000;
 let restoringSession=false;
-function saveSession(view){try{localStorage.setItem(SESSION_KEY,JSON.stringify(view=='learn'?{view,ts:Date.now()}:{view,keys:Q.map(q=>q.n),i,score,res,answered:!!st.done,ts:Date.now()}))}catch(e){}}
+function saveSession(view){try{localStorage.setItem(SESSION_KEY,JSON.stringify(view=='learn'?{view,ts:Date.now()}:{view,keys:Q.map(q=>q.n),i,score,res,receipt:submissionReceipt,submissionToken,answered:!!st.done,ts:Date.now()}))}
+catch(error){console.error('Gagal menyimpan progres lokal:',error);warn('Progres tidak bisa disimpan di browser ini. Jangan tutup halaman sebelum hasil dikirim.');}}
 function clearSession(){try{localStorage.removeItem(SESSION_KEY)}catch(e){}}
-function restoreSession(){let data;try{data=JSON.parse(localStorage.getItem(SESSION_KEY))}catch(e){}
+function restoreSession(){let data;try{data=JSON.parse(localStorage.getItem(SESSION_KEY))}catch(e){console.error('Gagal membaca progres lokal:',e)}
 if(!data||!data.ts||Date.now()-data.ts>SESSION_MAX_AGE){clearSession();return false}
 if(data.view=='learn'){learn();return true}
 const byKey=new Map(ALL.map(q=>[q.n,q])),restored=(data.keys||[]).map(key=>byKey.get(key));
 if(restored.length!=BANK.length||restored.some(q=>!q)||!Number.isInteger(data.i)||!Array.isArray(data.res)||!Number.isFinite(data.score)){clearSession();return false}
-Q=restored;score=data.score;res=data.res;i=data.i;
+Q=restored;score=data.score;res=data.res;submissionReceipt=data.receipt||null;submissionToken=data.submissionToken||null;i=data.i;
 if(data.view=='quiz'){if(data.answered)i++; // jawaban sudah dihitung, lanjut ke soal berikutnya (tidak bisa dijawab ulang lewat refresh)
 if(i>=Q.length)end();else{restoringSession=true;startBackgroundMusic();armAudioUnlock();show()}return true}
 if(data.view=='result'){end();return true}
@@ -273,38 +270,35 @@ document.body.append(overlay);let removed=false;const remove=()=>{if(!removed){r
 overlay.addEventListener('animationend',remove,{once:true});setTimeout(remove,2400)}
 
 const pair2=q=>q.type=='pair';
-const DAYS='sunday|monday|tuesday|wednesday|thursday|friday|saturday',FREQ=new RegExp(`\\b(once|twice|(two|three|four|five|six|seven) times) a (day|week|month|year)\\b|\\bevery (day|morning|afternoon|evening|night|week|weekend|month|year|${DAYS})\\b|\\b(always|usually|often|sometimes|rarely|never)\\b|\\bon (${DAYS})s?\\b`);
-// Penilaian keseluruhan: benar jika jawaban memuat frekuensi (atau jawaban singkat yang sah) dan pertanyaan/kata kerjanya sebagian besar tepat. Kesalahan kecil tidak menggagalkan pasangan.
-function gradePair(q,qs,as){const qt=norm(qs).split(' '),na=norm(as).replace(/'/g,''),at=na.split(' '),sa=q.sa.toLowerCase(),
-short=!!q.short&&new RegExp(`^((yes|no) )?${sa} (does|doesnt)$`).test(na),
-c1=qt[0]=='how'&&qt[1]=='often'&&qt[2]==q.aux,c2=qt.includes(q.verb)&&(short||at.includes(sa)&&at.includes(q.vf)),c3=short||FREQ.test(na);
-return{c1,c2,c3,short,c2q:qt.includes(q.verb),c2a:short||at.includes(sa)&&at.includes(q.vf),ok:c3&&(c1||c2)}}
 const PAIR_PTS=20,TARGET2=80;
 // Petunjuk berdasarkan aturan, tanpa menyebut kata jawaban yang tepat.
 function pairHints(q,r){const she=['he','she'].includes(q.subj),c2=[];if(!r.c2q)c2.push('Setelah subjek di pertanyaan, kata kerja memakai bentuk dasar (tanpa s/es).');
 if(!r.c2a)c2.push(q.sa=='I'?'Di jawaban, pelakunya diganti dari “kamu” menjadi dirimu sendiri, dan kata ganti milik ikut berubah. Kata kerjanya tetap bentuk dasar.':she?'Di jawaban, pelakunya satu orang (he/she), jadi cek bentuk kata kerjanya: perlu tambahan s/es atau tidak? Ingat perubahan khusus seperti y atau o di akhir kata.':'Di jawaban, pelakunya banyak orang, jadi cek bentuk kata kerjanya: perlu tambahan s/es atau tidak?');
 return{c1:she?'Mulai dengan How often. Pelakunya satu orang (he/she), jadi cek kata bantu yang dipakai untuk he/she/it.':'Mulai dengan How often. Pelakunya bukan satu orang (kamu/mereka), jadi cek kata bantu yang dipakai untuk I/you/we/they.',c2:c2.join(' '),c3:'Pertanyaan How often dijawab dengan seberapa sering: jumlah kali + waktu, kata every …, atau adverb frekuensi.'}}
-function check(){if(st.done)return next();const q=Q[i];let ok,right,n,pts=0,pairHtml='',pairPts=0;
-if(q.type=='mcq'){if(st.sel==null)return warn('Pilih satu jawaban dulu ya! 😊');ok=q.oo[st.sel][1]==q.a;right=q.o[q.a];
+function check(){if(st.done)return next();const q=Q[i];let answer,ok,right,n,pts=0,pairHtml='',pairPts=0;
+if(q.type=='mcq'){if(st.sel==null)return warn('Pilih satu jawaban dulu ya! 😊');answer={selected:q.oo[st.sel][0]};right=q.o[q.a];
 document.querySelectorAll('.opt').forEach((b,j)=>{if(q.oo[j][1]==q.a)b.classList.add('ok');else if(j==st.sel)b.classList.add('no')})}
-else if(q.type=='fill'){const u=norm(g('fi').value);if(!u)return warn('Ketik jawabannya dulu ya! ✍️');ok=q.a.some(a=>norm(a)==u);right=q.a[0]}
-else if(q.type=='order'){if(st.ans[0].length<q.w.length)return warn('Susun semua katanya dulu ya! 🧩');ok=[q.a,...(q.alt||[])].some(a=>norm(a)==norm(st.ans[0].map(k=>q.w[k]).join(' ')));right=q.a}
-else if(q.type=='pair'){if(!st.ans[0].length||!st.ans[1].length)return warn('Susun pertanyaan dan jawabannya dulu ya! 🧩');const [qs,as]=st.ans.map((a,gi)=>a.map(k=>q.G[gi].w[k]).join(' ')),r=gradePair(q,qs,as),all=r.c1&&r.c2&&r.c3;ok=r.ok;right=q.eq;
-pairPts=ok?PAIR_PTS:Math.round(PAIR_PTS*((r.c1?.3:0)+(r.c2?.35:0)+(r.c3?.35:0)));
+else if(q.type=='fill'){const text=g('fi').value.trim();if(!EHScoring.normalize(text))return warn('Ketik jawabannya dulu ya! ✍️');answer={text};right=q.a[0]}
+else if(q.type=='order'){if(st.ans[0].length<q.w.length)return warn('Susun semua katanya dulu ya! 🧩');answer={words:st.ans[0].map(k=>q.w[k])};right=q.a}
+else if(q.type=='pair'){if(!st.ans[0].length||!st.ans[1].length)return warn('Susun pertanyaan dan jawabannya dulu ya! 🧩');const [question,response]=st.ans.map((a,gi)=>a.map(k=>q.G[gi].w[k]).join(' '));answer={question,answer:response};right=q.eq;
+const graded=EHScoring.gradeAnswer(q,answer),r=graded.details,all=r.c1&&r.c2&&r.c3;ok=graded.ok;pts=graded.points;pairPts=pts;
 const H=pairHints(q,r),line=(good,label,hint)=>`<br>${good?'✅':'⚠️'} ${label}${good?'':`<br><small>💡 ${hint}</small>`}`;
 pairHtml=`<div class="fb ${ok?'ok':pairPts>0?'part':'no'}">${ok?(all?'🎉 <b>Pasangan ini benar!</b>':'🌟 <b>Benar secara keseluruhan!</b> Hanya ada kesalahan kecil.'):'😅 <b>Pasangan ini belum tepat.</b>'} <b>+${pairPts} poin</b>${line(r.c1,'Pertanyaan: pola How often + kata bantu',H.c1)}${line(r.c2,'Kata kerja di pertanyaan dan jawaban',H.c2)}${line(r.c3,r.short?'Jawaban singkat':'Ungkapan frekuensi di jawaban',H.c3)}</div>`}
-else if(q.type=='speak'){stopVoice();if(!st.heard)return warn('Tekan 🎤 dan ucapkan dulu ya! 🗣️');const r=speakScore(q,st.alts);ok=r.ok;pts=ok?PTS:q.mode=='read'&&r.score>=.5?PTS*r.score:0;right=q.target}
-else{const v=q.p.map((p,k)=>st.m[k]||'');if(v.includes(''))return warn('Pilih arti untuk semua kata dulu ya! 🔗');n=v.filter((x,k)=>x==q.p[k][1]).length;ok=n==q.p.length;pts=PTS*n/q.p.length;right=q.p.map(p=>p[0]+' = '+p[1]).join('; ');
+else if(q.type=='speak'){stopVoice();if(!st.heard)return warn('Tekan 🎤 dan ucapkan dulu ya! 🗣️');answer={transcript:st.heard,alternatives:st.alts};right=q.target}
+else{const matches=q.p.map((p,k)=>st.m[k]||'');if(matches.includes(''))return warn('Pilih arti untuk semua kata dulu ya! 🔗');answer={matches};right=q.p.map(p=>p[0]+' = '+p[1]).join('; ')}
+const gradedResult=q.type=='pair'?null:EHScoring.gradeAnswer(q,answer);
+if(gradedResult){ok=gradedResult.ok;pts=gradedResult.points;n=gradedResult.correctCount}
+if(q.type=='match'){
+const v=answer.matches;
 document.querySelectorAll('.ddb').forEach((b,k)=>{const r=v[k]==q.p[k][1];b.classList.add(r?'ok':'no');if(!r)b.insertAdjacentHTML('afterend',`<span class="fix">✔ ${esc(q.p[k][1])}</span>`)})}
-if(q.type!='match'&&q.type!='pair'&&ok)pts=PTS;
-st.done=true;if(!pair2(q))score+=pts;res.push({t:q.t,pts:pair2(q)?pairPts:pts,ok,ph:pair2(q)?2:1,n:q.n,ua:userAnswer(q)});saveSession('quiz');g('body').classList.add('locked');
+st.done=true;if(!pair2(q))score+=pts;res.push({t:q.t,pts,ok,ph:pair2(q)?2:1,n:q.n,ua:userAnswer(q,answer),answer});saveSession('quiz');g('body').classList.add('locked');
 g('fb').innerHTML=pairHtml||`<div class="fb ${ok?'ok':pts>0?'part':'no'}">${ok?`🎉 <b>Benar! +${fmt(pts)} poin</b>`:pts>0?`👍 <b>${q.type=='speak'?'Hampir benar!':`${n} dari ${q.p.length} pasangan benar!`} +${fmt(pts)} poin</b>`:'😅 <b>Belum tepat (0 poin).</b>'}${ok?'':`<br>Jawaban benar: <b>${esc(right)}</b>`}${q.type=='speak'?`<br>🎤 Terdengar: <b>${esc(st.heard)}</b>`:''}${q.listenText?`<br>🔊 Kalimat yang dibacakan: <b>${esc(q.listenText)}</b>`:''}<br>💡 ${esc(q.e)}</div>`;
 showAnswerOverlay(ok,!ok&&(pts>0||pairPts>0));playAnswerSound(ok);
 g('fb').scrollIntoView?.({block:'nearest',behavior:'smooth'});g('chk').textContent=i==Q.length-1?'Lihat Hasil 🏆':'Lanjut ➜'}
 
-function userAnswer(q){const w=(gi,G=q.G)=>st.ans[gi].map(k=>G[gi].w[k]).join(' ');
-if(q.type=='mcq')return q.oo[st.sel][0];if(q.type=='fill')return g('fi').value.trim();if(q.type=='order')return w(0);if(q.type=='speak')return st.heard;
-if(q.type=='pair')return `${w(0)}? / ${w(1)}`;return q.p.map((p,k)=>`${p[0]} = ${st.m[k]}`).join('; ')}
+function userAnswer(q,answer){
+if(q.type=='mcq')return answer.selected;if(q.type=='fill')return answer.text;if(q.type=='order')return answer.words.join(' ');if(q.type=='speak')return answer.transcript;
+if(q.type=='pair')return `${answer.question}? / ${answer.answer}`;return q.p.map((p,k)=>`${p[0]} = ${answer.matches[k]}`).join('; ')}
 const correctText=q=>q.type=='mcq'?q.o[q.a]:q.type=='fill'?q.a[0]:q.type=='order'?q.a:q.type=='speak'?q.target:q.type=='pair'?`${q.eq}? / ${q.ea} ${q.f}.`:q.p.map(p=>p[0]+' = '+p[1]).join('; ');
 function review(){saveSession('result');window.scrollTo(0,0);
 const items=Q.map((q,k)=>{const r=res[k]||{},p2=q.type=='pair',max=p2?PAIR_PTS:PTS,st2=r.ok?'ok':r.pts>0?'part':'no';
@@ -314,8 +308,27 @@ return `<section class="card rv ${st2}"><p class="hint">${p2?`✍️ Asesmen · 
 A.innerHTML=`<div class="wrap"><button class="back" onclick="end(true)">⬅ Kembali ke Nilai</button><h2 style="text-align:center">📖 Pembahasan</h2>${items}<button class="btn go" onclick="end(true)">⬅ Kembali ke Nilai</button></div>`}
 function next(){i++;i<Q.length?show():end()}
 
-function end(quiet){saveSession('result');window.scrollTo(0,0);
+function submissionPayload(){if(!submissionToken)submissionToken=EHSubmission.createToken();return{submission_token:submissionToken,participant_name:NAME,sessions:[
+{session_key:'practice',session_number:1,answers:res.filter(result=>result.ph==1).map(result=>({question_key:result.n,answer:result.answer}))},
+{session_key:'assessment',session_number:2,answers:res.filter(result=>result.ph==2).map(result=>({question_key:result.n,answer:result.answer}))}
+]}}
+function canSubmitResults(){return Q.length===BANK.length&&res.length==Q.length&&res.every(result=>result.n&&result.answer&&typeof result.answer=='object')}
+async function submitCurrentResults(){
+if(!canSubmitResults())return warn('Hasil versi lama belum memiliki detail jawaban yang dibutuhkan. Mainkan ulang untuk mengirim hasil ini.');
+if(!window.confirm('Kirim hasil Latihan dan Asesmen ini ke guru?'))return;
+const button=document.getElementById('submit-result');if(button){button.disabled=true;button.textContent='Mengirim hasil…'}
+try{submissionReceipt=await EHSubmission.submit(submissionPayload());saveSession('result');end(true)}
+catch(error){warn(error.message);if(button){button.disabled=false;button.textContent='Kirim Hasil'}}
+}
+async function retrySubmission(token,button){
+if(button){button.disabled=true;button.textContent='Mengirim…'}
+try{const receipt=await EHSubmission.send(token);if(token===submissionToken)submissionReceipt=receipt;home(true);warn('Hasil berhasil dikirim!')}
+catch(error){warn(error.message);if(button){button.disabled=false;button.textContent='Kirim ulang hasil'}}
+}
+function end(quiet){window.scrollTo(0,0);
 const p2=res.filter(r=>r.ph==2),t2=p2.reduce((a,r)=>a+r.pts,0),total=(score+t2)/2,pr=best();if(total>pr)try{localStorage.setItem(bk(),total)}catch(e){}
+if(canSubmitResults()&&!submissionReceipt)try{EHSubmission.queue(submissionPayload())}catch(error){console.error('Hasil belum masuk antrean pengiriman:',error)}
+saveSession('result');
 const grade=gradeForScore(total),row=(a,b)=>`<div class="prow"><span>${a}</span><b>${b}</b></div>`;
 const lv=[1,2,3].map(t=>row(`${LV[t][2]} ${LV[t][0]}`,`${fmt(res.filter(r=>r.t==t&&r.ph!=2).reduce((a,r)=>a+r.pts,0))}/${fmt(PER[t]*PTS)}`)).join(''),
 pr2=p2.map((r,k)=>row(`Pasangan ${k+1}`,`${fmt(r.pts)}/${PAIR_PTS}`)).join('');
@@ -323,6 +336,7 @@ A.innerHTML=`<div class="wrap"><section class="card"><div class="stars">${'⭐'.
 <h2 style="text-align:center">${grade.icon} ${grade.label}</h2><p class="sub" style="text-align:center">${grade.description}</p>${total>pr&&pr?'<p class="sub" style="text-align:center">🎊 Skor terbaik baru!</p>':''}
 <div class="pgrid"><div class="pcard ${score>=KKM?'ok':'no'}"><b>📝 Fase 1: Latihan</b><div class="pscore">${fmt(score)}<small> / 100</small></div>${lv}<p class="pnote">${score>=KKM?`Mencapai KKM (${KKM}) ✅`:`KKM ${KKM}, ayo berlatih lagi`}</p></div>
 <div class="pcard ${t2>=TARGET2?'ok':'no'}"><b>✍️ Fase 2: Asesmen</b><div class="pscore">${fmt(t2)}<small> / 100</small></div>${pr2}<p class="pnote">${t2>=TARGET2?`Target tercapai 🎯 (min. ${TARGET2})`:`Target ${TARGET2}, ayo coba lagi`}</p></div></div>
+${submissionReceipt?`<div class="fb ok submission-confirmation"><b>✅ Hasil berhasil dikirim!</b></div>`:canSubmitResults()?`<div class="submission-box"><p>Hasil Latihan dan Asesmen lengkap. Kirim satu kali agar guru dapat melihatnya.</p><div id="submit-feedback"></div><button class="btn go" id="submit-result" onclick="submitCurrentResults()">Kirim Hasil</button><p class="hint">Jika koneksi gagal, hasil tersimpan di browser dan bisa dikirim ulang nanti.</p></div>`:'<div class="fb part">Hasil ini berasal dari sesi lama tanpa detail jawaban. Mainkan ulang untuk mengirim nilai.</div>'}
 <button class="btn go" onclick="start()">Main Lagi 🔄</button><button class="btn alt" onclick="review()">📖 Pembahasan</button><button class="btn alt" onclick="learn()">📘 Baca Materi</button><button class="btn alt" onclick="home()">🏠 Beranda</button></section></div>`;
 if(!quiet){showGradeOverlay(grade);playEffect(grade.sound)}}
 if(!restoreSession()){home();initMic()}

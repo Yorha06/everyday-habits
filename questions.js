@@ -39,3 +39,4 @@ const ALL=BANK.concat(BANK.filter(q=>q.fb).map(q=>q.fb));
 BANK.forEach(q=>{if(q.type==='tf'){q.k='tf';q.type='mcq';q.o=['✅ True (Benar)','❌ False (Salah)'];q.a=q.a?0:1}});
 // Susun kalimat: tampilkan arti Indonesia saja, jangan bocorkan urutan benar. Kartu kata dibuat otomatis.
 BANK.forEach(q=>{if(q.type==='pair'){q.qw=[...q.eq.split(' '),...q.qd];}});
+if(typeof module!=='undefined'&&module.exports)module.exports={BANK,ALL,FREQ_ANSWERS};
