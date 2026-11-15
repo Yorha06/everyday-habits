@@ -19,3 +19,12 @@ test('pair assessment retains partial credit for criteria',()=>{
   assert.equal(result.ok,true);
   assert.equal(result.points,20);
 });
+
+test('pair assessment requires correct question, verb forms, and frequency for full credit',()=>{
+  const pair=BANK.find(question=>question.n=='p1');
+  const wrongQuestion=scoring.gradeAnswer(pair,{question:'How often does you play football',answer:'I play football once a week'});
+  assert.equal(wrongQuestion.ok,false);
+  assert.ok(wrongQuestion.points<20);
+  const noFrequency=scoring.gradeAnswer(pair,{question:'How often do you play football',answer:'I play football'});
+  assert.equal(noFrequency.ok,false);
+});

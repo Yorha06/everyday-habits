@@ -39,7 +39,7 @@
     const c1=qt[0]=='how'&&qt[1]=='often'&&qt[2]==q.aux;
     const c2=qt.includes(q.verb)&&(short||at.includes(subject)&&at.includes(q.vf));
     const c3=short||FREQ.test(normalizedAnswer);
-    return{c1,c2,c3,short,c2q:qt.includes(q.verb),c2a:short||at.includes(subject)&&at.includes(q.vf),ok:c3&&(c1||c2)};
+    return{c1,c2,c3,short,c2q:qt.includes(q.verb),c2a:short||at.includes(subject)&&at.includes(q.vf),ok:c1&&c2&&c3};
   }
 
   function gradeAnswer(q,answer){

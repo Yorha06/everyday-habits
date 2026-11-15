@@ -1,6 +1,6 @@
 const A=document.getElementById('app'),g=id=>document.getElementById(id);
 const PER={1:4,2:3,3:3},PTS=10;
-const KKM=75,BG_VOLUME=.18;
+const KKM=80,BG_VOLUME=.18;
 const AUDIO={background:new Audio('sfx/bgSound.mp3'),correct:new Audio('sfx/correct.mp3'),wrong:new Audio('sfx/wrong.mp3'),aboveKkm:new Audio('sfx/diatasKKM.mp3'),aroundKkm:new Audio('sfx/sekitarKKM.mp3'),poor:[new Audio('sfx/fail1.mp3'),new Audio('sfx/fail2.mp3')],veryPoor:new Audio('sfx/extraFail.mp3')};
 AUDIO.background.loop=true;AUDIO.background.volume=BG_VOLUME;
 Object.values(AUDIO).flat().forEach(audio=>{audio.preload='auto';audio.load()});
@@ -34,7 +34,7 @@ A.innerHTML=`<section class="hero"><div class="mascot">🦉<span>⏰</span></div
 <p class="sub">Yuk belajar kebiasaan sehari-hari dalam bahasa Inggris. Seru, mudah, dan ada bintangnya!</p>
 <label for="nm">Pakai <b>nama samaran</b>, jangan nama aslimu!</label>
 <input id="nm" class="inp" maxlength="20" autocomplete="off" placeholder="Contoh: Elang Cerdas" value="${esc(NAME)}" onkeydown="if(event.key==='Enter')go()">
-<button class="back" type="button" onclick="randName()">🎲 Acak nama</button><p class="sub">Nama hanya tersimpan di browser ini.</p>
+<button class="back" type="button" onclick="randName()">🎲 Acak nama</button><p class="sub">Nama samaran hanya dipakai untuk menyimpan hasil. Hasil dikirim ke guru hanya kalau kamu menekan Kirim Hasil.</p>
 ${pendingError?`<div class="fb part">${esc(pendingError)}</div>`:pending.length?`<section class="card pending-results"><h2>📤 Hasil belum terkirim</h2><p class="sub">Hasil tetap tersimpan di browser. Kirim ulang saat internet tersedia.</p>${pending.map(item=>`<button class="btn alt" type="button" onclick="retrySubmission('${esc(item.submission_token)}',this)">Kirim hasil ${esc(item.participant_name)} (${new Date(item.created_at).toLocaleString('id-ID')})</button>`).join('')}</section>`:''}
 <div id="fb"></div><p id="micnote" class="sub"></p><button class="btn go" onclick="go()">Ayo Mulai! 🚀</button><button class="btn alt" onclick="learn()">📘 Belajar Dulu</button>
 ${best()?`<p class="best">🏆 Skor terbaikmu: <b>${fmt(best())}</b></p>`:''}</div></section>
@@ -74,10 +74,6 @@ ${box('🚌 Pergi ke Sekolah',TR)}
 <div class="tip">🔹 <b>How often</b> (seberapa sering) → jawab dengan frekuensi.<br><i>How often do you read? — Three times a week.</i></div>
 <div class="tip">🔹 <b>What time</b> (jam berapa) → jawab dengan jam.<br><i>What time does he get up? — At six o'clock.</i></div>
 <div class="tip">🔹 Kata tanya lain: <b>Where</b> = di mana, <b>Who</b> = siapa.</div></section>
-<section class="card"><h2>🚫 Kalimat Negatif</h2>
-<div class="tip">🔸 <b>I / You / We / They</b> → <b>don't</b> (do not) + kata kerja dasar.<br><i>They don't go to bed late.</i></div>
-<div class="tip">🔸 <b>He / She / It</b> → <b>doesn't</b> (does not) + kata kerja dasar.<br><i>She doesn't go to school by bus. (bukan "goes")</i></div>
-<div class="tip">🔸 <b>Never</b> sudah berarti "tidak pernah", jadi tidak perlu don't.<br><i>She never eats breakfast late.</i></div></section>
 <section class="card"><h2>🔊🎤 Tips Menyimak & Speaking</h2>
 <div class="tip">🔊 Dengarkan <b>kata penting</b>: jam (four o'clock), kegiatan (brush, homework), dan frekuensi (twice a week). Kalimat dapat diputar ulang.</div>
 <div class="tip">🎤 Baca pelan dan jelas, satu kata demi satu kata. Ucapkan <b>semua kata</b> dan jangan menambah kata lain.</div>
