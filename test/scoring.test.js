@@ -9,6 +9,7 @@ test('shared scoring preserves partial matching and speaking rules',()=>{
   assert.equal(partial.points,5);
   const speaking=BANK.find(question=>question.n=='a9');
   assert.equal(scoring.gradeAnswer(speaking,{transcript:'Every day',alternatives:['Every day']}).points,10);
+  assert.equal(scoring.gradeAnswer(speaking,{transcript:'everyday',alternatives:['everyday']}).points,10);
   assert.equal(scoring.gradeAnswer(speaking,{transcript:'Every',alternatives:['Every']}).points,0);
 });
 

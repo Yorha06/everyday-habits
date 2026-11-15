@@ -5,16 +5,21 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
   const norm=s=>String(s??'').toLowerCase().replace(/[’‘]/g,"'").replace(/[^a-z' ]/g,'').replace(/\s+/g,' ').trim();
   const NUMBER_WORDS=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
-  const speechTokens=text=>norm(String(text??'').toLowerCase().replace(/(\d{1,2}):30/g,'half past $1').replace(/(\d{1,2}):00/g,'$1').replace(/\b\d{1,2}\b/g,d=>NUMBER_WORDS[+d]||d).replace(/o['’]\s?clock/g,'oclock')).replace(/'/g,'').split(' ').filter(word=>word&&word!='oclock');
+  const speechTokens=(text,splitEveryday=false)=>{
+    const tokens=norm(String(text??'').toLowerCase().replace(/(\d{1,2}):30/g,'half past $1').replace(/(\d{1,2}):00/g,'$1').replace(/\b\d{1,2}\b/g,d=>NUMBER_WORDS[+d]||d).replace(/o['’]\s?clock/g,'oclock')).replace(/'/g,'').split(' ').filter(word=>word&&word!='oclock');
+    return splitEveryday?tokens.flatMap(word=>word=='everyday'?['every','day']:[word]):tokens;
+  };
   const DAYS='sunday|monday|tuesday|wednesday|thursday|friday|saturday';
   const FREQ=new RegExp(`\\b(once|twice|(two|three|four|five|six|seven) times) a (day|week|month|year)\\b|\\bevery (day|morning|afternoon|evening|night|week|weekend|month|year|${DAYS})\\b|\\b(always|usually|often|sometimes|rarely|never)\\b|\\bon (${DAYS})s?\\b`);
 
   function scoreSpeech(q,alternatives){
     let best={ok:false,score:0};
-    for(const target of [q.target,...(q.accept||[])]){
-      const words=speechTokens(target);
+    const targets=[q.target,...(q.accept||[])];
+    const splitEveryday=targets.some(target=>speechTokens(target).join(' ')=='every day');
+    for(const target of targets){
+      const words=speechTokens(target,splitEveryday);
       for(const heard of alternatives){
-        const heardWords=speechTokens(heard),pool=[...heardWords];
+        const heardWords=speechTokens(heard,splitEveryday),pool=[...heardWords];
         let hit=0;
         for(const word of words){
           const index=pool.indexOf(word);
