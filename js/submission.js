@@ -11,7 +11,9 @@
     try{
       const value=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
       if(!Array.isArray(value))throw new Error('Format antrean submission tidak valid.');
-      return value;
+      const safe=value.map(({fingerprint,...item})=>{const next={...item,participant_name:'Peserta anonim'};return{...next,fingerprint:stable({participant_name:next.participant_name,sessions:next.sessions})}});
+      if(value.some(item=>item.participant_name!=='Peserta anonim'))localStorage.setItem(STORAGE_KEY,JSON.stringify(safe));
+      return safe;
     }catch(error){
       console.error('Gagal membaca antrean submission:',error);
       throw new Error('Data submission lokal tidak dapat dibaca. Jangan hapus penyimpanan browser sebelum hasil berhasil dikirim.');
@@ -33,6 +35,7 @@
     return`${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
   }
   function enqueue(payload){
+    payload={...payload,participant_name:'Peserta anonim'};
     const outbox=readOutbox(),token=payload.submission_token||makeToken();
     const fingerprint=stable({participant_name:payload.participant_name,sessions:payload.sessions});
     const existing=outbox.find(item=>item.submission_token===token);

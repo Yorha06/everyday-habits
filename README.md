@@ -21,9 +21,11 @@ Script lokal menjalankan Vercel CLI dalam mode tanpa project link dan tidak menc
 
 - Satu submission berisi dua sesi wajib: **Latihan** (10 soal, dibagi Pagi/Siang/Malam) dan **Asesmen** (5 pasangan).
 - Skor setiap sesi maksimum 100; skor total adalah rata-rata skor Latihan dan Asesmen.
+- Latihan 10 soal memberi satu petunjuk dan satu percobaan ulang setelah jawaban pertama salah.
+- Asesmen terdiri dari lima pasangan mandiri. Keberhasilan objektif dihitung dari jumlah pasangan yang memenuhi ketiga kriteria (minimal 4 dari 5), bukan dari akumulasi poin parsial.
 - Aplikasi menyimpan hasil lengkap di browser dan menyiapkan antrean lokal sebelum submit. Data tetap tersimpan saat koneksi gagal dan dapat dikirim ulang.
 - `POST /api/submit` memvalidasi semua jawaban dan menghitung ulang skor di server. Skor dari browser tidak digunakan.
-- Submission menyimpan UUID, kode peserta, nama, skor sesi, skor komponen, jawaban, serta token idempotensi. Nama peserta tidak unik.
+- Submission menyimpan UUID, kode peserta acak, label anonim, skor sesi, skor komponen, jawaban, jumlah percobaan latihan, serta token idempotensi. Nama tidak dikumpulkan dari anak; backend menggunakan label tetap `Peserta anonim` dan kode hasil acak.
 - Soal dan kunci jawaban aplikasi tersedia pada JavaScript publik; validasi server melindungi integritas perhitungan skor, bukan mencegah peserta melihat materi sumber.
 
 ## Setup Supabase
@@ -63,3 +65,12 @@ Endpoint menerima payload maksimal 64 KiB dan melakukan validasi sesi/soal/forma
 - Dashboard menyediakan ringkasan skor, pencarian nama/kode, filter tanggal, pengurutan, pagination, detail jawaban, export Excel, dan tombol hapus di samping Detail maupun di dialog detail. Penghapusan permanen meminta konfirmasi dan ikut menghapus rincian sesi terkait.
 - Export membuat worksheet `Ringkasan`, `Nilai Komponen`, dan `Rincian Jawaban`; filter sesi dan filter dashboard berlaku untuk export. Export satu peserta tersedia dari dialog detail.
 - Admin memuat Supabase JS dan ExcelJS dari CDN, sehingga koneksi internet diperlukan pada halaman Admin.
+
+
+## Meeting 12 - alignment
+
+- Sepuluh latihan disusun bertahap dalam urutan pengenalan makna, melengkapi dan menyusun pola, memilih do/does, menyimak, lalu menjawab secara lisan. Latihan memberi satu petunjuk dan satu kesempatan ulang.
+- Asesmen berisi lima prompt dengan frekuensi dinyatakan jelas dalam bahasa Indonesia. Siswa menyusun pertanyaan dan jawaban dari kartu kata, tanpa contoh atau bantuan dan hanya satu percobaan.
+- Pasangan dinyatakan benar hanya bila pola pertanyaan, bentuk kata kerja, dan makna frekuensi semuanya benar. Target adalah minimal empat pasangan benar dari lima; poin parsial tidak dihitung sebagai pasangan benar.
+- Identitas anak tidak diminta. Server mengganti label peserta dengan `Peserta anonim` dan membuat kode hasil acak.
+- Admin menampilkan proporsi pencapaian target serta kriteria kelas yang paling lemah.

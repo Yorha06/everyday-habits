@@ -64,10 +64,13 @@ function renderAnswerHtml(answer,question){
     return `<p class="answer-value"><span>Transkrip peserta</span>${escapeHtml(answerValue(response.transcript)||'Belum ada transkrip')}</p>`;
   }
   if(type==='pair'){
-    return `<div class="answer-pair">
-      <p class="answer-value"><span>Pertanyaan peserta</span>${escapeHtml(answerValue(response.question)||'Belum ada jawaban')}</p>
-      <p class="answer-value"><span>Jawaban peserta</span>${escapeHtml(answerValue(response.answer)||'Belum ada jawaban')}</p>
-    </div>`;
+    const criteria=[['c1','Pola How often + do/does'],['c2','Bentuk kata kerja'],['c3','Frekuensi sesuai petunjuk']];
+    const criterionHtml=answer.criteria?criteria.map(([key,label])=>(answer.criteria[key]?'✓':'✗')+' '+label).join(' · '):'Belum tersedia pada hasil lama';
+    return '<div class="answer-pair">'+
+      '<p class="answer-value"><span>Pertanyaan peserta</span>'+escapeHtml(answerValue(response.question)||'Belum ada jawaban')+'</p>'+
+      '<p class="answer-value"><span>Jawaban peserta</span>'+escapeHtml(answerValue(response.answer)||'Belum ada jawaban')+'</p>'+
+      '<p class="answer-value"><span>Kriteria</span>'+criterionHtml+'</p>'+
+      '<p class="answer-value"><span>Percobaan</span>'+Number(answer.attempts||1)+' kali</p></div>';
   }
   if(type==='match'){
     const pairs=question?.p||[];
@@ -120,7 +123,19 @@ function updateStats(rows){
   $('stat-total').textContent=formatScore(average(totals));
   $('stat-practice').textContent=formatScore(average(practice));
   $('stat-assessment').textContent=formatScore(average(assessment));
+  const targetCount=rows.filter(row=>{
+    const session=(row.session_results||[]).find(item=>item.session_key==='assessment');
+    return !!session&&(session.answer_details||[]).filter(answer=>answer.correct).length>=4;
+  }).length;
+  $('stat-target').textContent=rows.length?targetCount+' / '+rows.length:'—';
+  const details=rows.flatMap(row=>(row.session_results||[]).filter(session=>session.session_key==='assessment').flatMap(session=>session.answer_details||[]));
+  const criteria=[['c1','Pola pertanyaan'],['c2','Bentuk kata kerja'],['c3','Makna frekuensi']].map(([key,label])=>{
+    const values=details.map(answer=>answer.criteria&&answer.criteria[key]).filter(value=>typeof value==='boolean');
+    return{label,rate:values.length?values.filter(Boolean).length/values.length:null};
+  }).filter(item=>item.rate!==null).sort((a,b)=>a.rate-b.rate);
+  $('stat-weakest').textContent=criteria.length?criteria[0].label+' ('+Math.round(criteria[0].rate*100)+'%)':'—';
 }
+
 function renderTable(){
   visibleRows=filteredRows();updateStats(visibleRows);
   const pageCount=Math.max(1,Math.ceil(visibleRows.length/PAGE_SIZE));
@@ -506,7 +521,10 @@ async function exportWorkbook(rows,sessionFilter='all'){
           'Nomor soal':`Soal ${index+1}`,'Tingkat':levelLabel(answer.level||question?.t)||'—',
           'Pertanyaan':answer.prompt||question?.q||'Pertanyaan tidak tersedia',
           'Jawaban peserta':answerText(answer,question),'Hasil':resultLabel(answer),
-          'Skor':Number(answer.score),'Skor maksimal':Number(answer.max_score),'Tanggal pengumpulan':formatDate(row.submitted_at)
+          'Kriteria 1 - Pola pertanyaan':answer.criteria&&typeof answer.criteria.c1==='boolean'?(answer.criteria.c1?'Benar':'Perlu diperbaiki'):'—',
+          'Kriteria 2 - Bentuk kata kerja':answer.criteria&&typeof answer.criteria.c2==='boolean'?(answer.criteria.c2?'Benar':'Perlu diperbaiki'):'—',
+          'Kriteria 3 - Makna frekuensi':answer.criteria&&typeof answer.criteria.c3==='boolean'?(answer.criteria.c3?'Benar':'Perlu diperbaiki'):'—',
+          'Percobaan':Number(answer.attempts||1),'Skor':Number(answer.score),'Skor maksimal':Number(answer.max_score),'Tanggal pengumpulan':formatDate(row.submitted_at)
         });
       });
     }));
@@ -521,8 +539,8 @@ async function exportWorkbook(rows,sessionFilter='all'){
       sessionResults,[24,16,14,24,17,23,14,22],
       {'Skor komponen':'0.##" poin"','Skor maksimal komponen':'0.##" poin"','Skor sesi':'0.##"/100"'},3);
     addDataWorksheet(workbook,'Rincian Jawaban','RincianJawabanTable',
-      ['Nama peserta','Kode peserta','Sesi','Nomor soal','Tingkat','Pertanyaan','Jawaban peserta','Hasil','Skor','Skor maksimal','Tanggal pengumpulan'],
-      answerDetails,[24,16,14,14,14,52,48,20,12,16,22],
+      ['Nama peserta','Kode peserta','Sesi','Nomor soal','Tingkat','Pertanyaan','Jawaban peserta','Hasil','Kriteria 1 - Pola pertanyaan','Kriteria 2 - Bentuk kata kerja','Kriteria 3 - Makna frekuensi','Percobaan','Skor','Skor maksimal','Tanggal pengumpulan'],
+      answerDetails,[24,16,14,14,14,52,48,20,28,28,28,12,12,16,22],
       {'Skor':'0.##" poin"','Skor maksimal':'0.##" poin"'},3);
 
     const buffer=await workbook.xlsx.writeBuffer();

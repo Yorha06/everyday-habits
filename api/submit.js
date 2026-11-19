@@ -81,16 +81,17 @@ function questionAnswers(session,spec){
     if(selected.length!==1)throw new ValidationError(`Semua soal wajib pada sesi ${spec.session_key} harus dijawab tepat satu kali.`);
     const question=selected[0],entry=byKey.get(question.n);
     validateAnswer(question,entry.answer);
-    validated.push({question,answer:entry.answer});
+    const attempts=entry.attempts===undefined?1:entry.attempts;
+    const maxAttempts=spec.session_key==='practice'?2:1;
+    if(!Number.isInteger(attempts)||attempts<1||attempts>maxAttempts)throw new ValidationError(`Jumlah percobaan soal ${question.n} tidak valid.`);
+    validated.push({question,answer:entry.answer,attempts});
   }
   return validated;
 }
 function validateSubmission(body){
   requireRecord(body,'Format submission tidak valid.');
   if(typeof body.submission_token!='string'||!UUID.test(body.submission_token))throw new ValidationError('Token submission tidak valid.');
-  if(typeof body.participant_name!='string')throw new ValidationError('Nama peserta wajib diisi.');
-  const participantName=body.participant_name.trim();
-  if(!participantName||[...participantName].length>20||/[\u0000-\u001f\u007f]/.test(participantName))throw new ValidationError('Nama peserta wajib diisi dan maksimal 20 karakter.');
+  const participantName='Peserta anonim';
   if(!Array.isArray(body.sessions)||body.sessions.length!==SESSION_SPECS.length)throw new ValidationError('Semua sesi wajib harus disertakan.');
   const submittedByKey=new Map();
   body.sessions.forEach(session=>{
@@ -106,7 +107,7 @@ function validateSubmission(body){
     const answers=questionAnswers(session,spec);
     let totalScore=0;
     const byLevel={};
-    const details=answers.map(({question,answer})=>{
+    const details=answers.map(({question,answer,attempts})=>{
       const grade=Scoring.gradeAnswer(question,answer),maxPoints=grade.maxPoints;
       totalScore+=grade.points;
       if(spec.session_key=='practice'){
@@ -123,7 +124,9 @@ function validateSubmission(body){
         answer,
         correct:grade.ok,
         score:grade.points,
-        max_score:maxPoints
+        max_score:maxPoints,
+        criteria:question.type==='pair'?grade.details:null,
+        attempts
       };
     });
     const levelScores=spec.session_key=='practice'?byLevel:{pairs:details.map(detail=>({question_key:detail.question_key,score:detail.score,max_score:detail.max_score}))};
@@ -132,7 +135,7 @@ function validateSubmission(body){
   const practiceScore=storedSessions.find(session=>session.session_key=='practice').total_score;
   const assessmentScore=storedSessions.find(session=>session.session_key=='assessment').total_score;
   const totalScore=(practiceScore+assessmentScore)/2;
-  const canonical={participant_name:participantName,sessions:storedSessions.map(session=>({session_key:session.session_key,session_number:session.session_number,answers:session.answer_details.map(detail=>({question_key:detail.question_key,answer:detail.answer}))}))};
+  const canonical={participant_name:participantName,sessions:storedSessions.map(session=>({session_key:session.session_key,session_number:session.session_number,answers:session.answer_details.map(detail=>({question_key:detail.question_key,answer:detail.answer,attempts:detail.attempts}))}))};
   const requestHash=crypto.createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
   return{token:body.submission_token,participantName,totalScore,sessions:storedSessions,requestHash};
 }

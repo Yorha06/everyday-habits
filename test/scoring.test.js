@@ -28,3 +28,19 @@ test('pair assessment requires correct question, verb forms, and frequency for f
   const noFrequency=scoring.gradeAnswer(pair,{question:'How often do you play football',answer:'I play football'});
   assert.equal(noFrequency.ok,false);
 });
+
+
+test('assessment checks the three criteria and the exact frequency prompt',()=>{
+  const pairs=BANK.filter(question=>question.type==='pair');
+  const results=pairs.map(question=>scoring.gradeAnswer(question,{question:question.eq,answer:question.ea+' '+question.f}));
+  assert.equal(results.every(result=>result.ok),true);
+  assert.equal(results.filter(result=>result.ok).length,5);
+  const mismatch=scoring.gradeAnswer(pairs[0],{question:pairs[0].eq,answer:'I play football twice a week'});
+  assert.equal(mismatch.details.c1,true);
+  assert.equal(mismatch.details.c2,true);
+  assert.equal(mismatch.details.c3,false);
+  assert.equal(mismatch.ok,false);
+  const badOrder=scoring.gradeAnswer(pairs[0],{question:'How often does you play football',answer:pairs[0].ea+' '+pairs[0].f});
+  assert.equal(badOrder.details.c1,false);
+  assert.equal(badOrder.ok,false);
+});

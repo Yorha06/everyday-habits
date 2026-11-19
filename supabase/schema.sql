@@ -1,5 +1,3 @@
-create sequence if not exists public.participant_code_seq start with 1;
-
 create table if not exists public.submissions (
   id uuid primary key default gen_random_uuid(),
   participant_code text not null unique,
@@ -9,6 +7,8 @@ create table if not exists public.submissions (
   request_hash text not null check (request_hash ~ '^[0-9a-f]{64}$'),
   submitted_at timestamptz not null default now()
 );
+
+update public.submissions set participant_name='Peserta anonim' where participant_name<>'Peserta anonim';
 
 create index if not exists submissions_submitted_at_idx on public.submissions (submitted_at desc);
 create index if not exists submissions_participant_name_idx on public.submissions using btree (participant_name);
@@ -77,7 +77,7 @@ declare
   v_session jsonb;
   v_session_key text;
   v_session_number integer;
-  v_code bigint;
+  v_code text;
 begin
   if p_submission_token is null
     or p_request_hash is null
@@ -106,11 +106,11 @@ begin
     raise exception 'invalid session results';
   end if;
 
-  v_code:=nextval('public.participant_code_seq');
+  v_code:=upper(substr(replace(gen_random_uuid()::text,'-',''),1,16));
   insert into public.submissions (
     participant_code,participant_name,total_score,submission_token,request_hash
   ) values (
-    'EH-' || lpad(v_code::text,greatest(4,char_length(v_code::text)),'0'),
+    'EH-' || v_code,
     btrim(p_participant_name),p_total_score,p_submission_token,p_request_hash
   ) on conflict (submission_token) do nothing
   returning * into v_submission;

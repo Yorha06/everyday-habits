@@ -32,7 +32,7 @@ input:focus,select:focus,button:focus-visible{outline:3px solid #b5aaff;outline-
 .export-controls{display:flex;align-items:center;gap:8px}
 .export-controls label{display:block}
 .export-controls select{width:auto;min-width:140px}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:18px 0}
 .stat{padding:16px}.stat span,.stat strong{display:block}.stat span{color:#66748a;font-size:.88rem}.stat strong{font-size:1.65rem;margin-top:8px}
 .filters{display:grid;grid-template-columns:2fr repeat(3,minmax(130px,1fr));gap:12px;padding:16px;margin-bottom:16px}
 .table-panel{overflow:hidden}

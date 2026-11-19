@@ -28,6 +28,7 @@ function makePayload(){
 test('server recomputes both phase scores and permits duplicate participant names',()=>{
   const first=submitHandler.validateSubmission(makePayload());
   const second=submitHandler.validateSubmission({...makePayload(),submission_token:'2182f4d0-7992-45ef-b096-f8f02ea28723'});
+  assert.equal(first.participantName,'Peserta anonim');
   assert.equal(first.totalScore,100);
   assert.equal(first.sessions[0].total_score,100);
   assert.equal(first.sessions[1].total_score,100);
@@ -64,10 +65,10 @@ test('server rejects missing sessions and answer words not offered to the partic
   assert.throws(()=>submitHandler.validateSubmission(invalidAnswer),/kata yang tidak tersedia/);
 });
 
-test('server rejects invalid identity and malformed answer types',()=>{
-  const invalidName=makePayload();
-  invalidName.participant_name='  ';
-  assert.throws(()=>submitHandler.validateSubmission(invalidName),/Nama peserta/);
+test('server forces anonymous identity and rejects malformed answer types',()=>{
+  const suppliedName=makePayload();
+  suppliedName.participant_name='Nama yang diisi dari browser';
+  assert.equal(submitHandler.validateSubmission(suppliedName).participantName,'Peserta anonim');
   const invalidChoice=makePayload();
   invalidChoice.sessions[0].answers[0].answer.selected='not an option';
   assert.throws(()=>submitHandler.validateSubmission(invalidChoice),/Pilihan jawaban/);
@@ -82,4 +83,14 @@ test('server accepts the documented fill-question substitutions when speaking is
   }
   const result=submitHandler.validateSubmission(payload);
   assert.equal(result.sessions[0].total_score,100);
+});
+
+
+test('server allows one retry for practice but not for independent assessment',()=>{
+  const practice=makePayload();
+  practice.sessions[0].answers[0].attempts=2;
+  assert.equal(submitHandler.validateSubmission(practice).sessions[0].answer_details[0].attempts,2);
+  const assessment=makePayload();
+  assessment.sessions[1].answers[0].attempts=2;
+  assert.throws(()=>submitHandler.validateSubmission(assessment),/Jumlah percobaan/);
 });
